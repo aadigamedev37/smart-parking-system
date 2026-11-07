@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SmartPark | Live Parking Slot Map & Instant Booking{% endblock %}
+
+{% block content %}
+{% comment %}
+=============================================================================
+BEGINNER TEMPLATE GUIDE:
+- extends 'base.html': Injects this template into the master base shell.
+- variable: Displays Python variables passed from views.py.
+- for slot in slots: Iterates through database querysets.
+- if condition: Evaluates conditional logic.
+=============================================================================
+{% endcomment %}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+  <!-- =========================================================================
+       HERO BANNER & LIVE FACILITY STATISTICS
+       ========================================================================= -->
+  <div class="relative overflow-hidden rounded-3xl glass-card p-6 sm:p-10 border border-white/10 shadow-2xl">
+    <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -left-20 -top-20 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      
+      <!-- Headline & Value Proposition -->
+      <div class="space-y-3 max-w-2xl">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold tracking-wide uppercase">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>Live Real-Time Bay Telemetry</span>
+        </div>
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          Find, Reserve & Park <br class="hidden sm:inline">
+          <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">In Under 30 Seconds.</span>
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          Skip circling around crowded lots. View real-time slot availability, reserve your designated bay before arrival, and manage digital passes with zero hassle.
+        </p>
+
+        <!-- Quick Action Buttons -->
+        <div class="pt-2 flex flex-wrap items-center gap-3">
+          <a href="#parking-grid" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center space-x-2">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span>Browse Available Bays</span>
+          </a>
+          <a href="{% url 'parking:cancel_booking' %}" class="px-5 py-2.5 rounded-xl glass-card hover:bg-white/10 text-white font-semibold text-sm border border-white/10 transition-all flex items-center space-x-2">
+            <i class="fa-solid fa-ban text-rose-400"></i>
+            <span>Cancel Active Reservation</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Live KPI Stat Cards Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-4 w-full lg:w-auto shrink-0">
+        
+        <!-- Total Slots -->
+        <div class="glass-card p-4 rounded-2xl border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Total Bays</span>
+            <i class="fa-solid fa-warehouse text-slate-500"></i>
+          </div>
+          <div class="mt-2 flex items-baseline space-x-2">
+            <span class="text-3xl font-extrabold text-white font-mono">{{ total_slots }}</span>
+            <span class="text-xs text-slate-400">slots</span>
+          </div>
+        </div>
+
+        <!-- Available Slots (Green) -->
+        <div class="glass-card p-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 flex flex-col justify-between glow-available">
+          <div class="flex items-center justify-between text-emerald-300 text-xs font-medium">
+            <span>Vacant Now</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+          <div class="mt-2 flex items-baseline space-x-2">
+            <span class="text-3xl font-extrabold text-emerald-400 font-mono">{{ available_slots }}</span>
+            <span class="text-xs text-emerald-300/80">ready</span>
+          </div>
+        </div>
+
+        <!-- Occupied Slots (Red) -->
+        <div class="glass-card p-4 rounded-2xl border border-rose-500/20 bg-rose-950/20 flex flex-col justify-between glow-occupied">
+          <div class="flex items-center justify-between text-rose-300 text-xs font-medium">
+            <span>Occupied</span>
+            <i class="fa-solid fa-car text-rose-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline space-x-2">
+            <span class="text-3xl font-extrabold text-rose-400 font-mono">{{ occupied_slots }}</span>
+            <span class="text-xs text-rose-300/80">parked</span>
+          </div>
+        </div>
+
+        <!-- Occupancy Rate -->
+        <div class="glass-card p-4 rounded-2xl border border-cyan-500/20 bg-cyan-950/20 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-cyan-300 text-xs font-medium">
+            <span>Occupancy</span>
+            <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline space-x-2">
+            <span class="text-3xl font-extrabold text-cyan-300 font-mono">{{ occupancy_rate }}%</span>
+            <span class="text-xs text-cyan-400/80">full</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Occupancy Progress Bar -->
+    <div class="mt-8 pt-6 border-t border-white/5">
+      <div class="flex justify-between items-center text-xs text-slate-400 mb-2">
+        <span class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+          <span>Available: {{ available_slots }}</span>
+          <span class="text-slate-600">|</span>
+          <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+          <span>Occupied: {{ occupied_slots }}</span>
+          {% if maintenance_slots %}
+          <span class="text-slate-600">|</span>
+          <span class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span>
+          <span>Maintenance: {{ maintenance_slots }}</span>
+          {% endif %}
+        </span>
+        <span class="font-mono text-emerald-400 font-bold">{{ available_slots }} Slots Open for Booking</span>
+      </div>
+      <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
+        <div style="width: {{ occupancy_rate }}%;" class="bg-gradient-to-r from-rose-500 to-red-600 transition-all duration-700"></div>
+        <div style="width: calc(100% - {{ occupancy_rate }}%);" class="bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SEARCH & MULTI-FILTER CONTROL BAR
+       ========================================================================= -->
+  <div id="parking-grid" class="space-y-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-white flex items-center space-x-2">
+          <span>Parking Bay Directory</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono border border-slate-700">{{ slots|length }} bays</span>
+        </h2>
+        <p class="text-xs text-slate-400">Click any <span class="text-emerald-400 font-semibold">green Available bay</span> to open quick booking modal.</p>
+      </div>
+
+      <!-- Live Auto Radar Switch -->
+      <div class="flex items-center space-x-3 bg-slate-900/80 px-4 py-2 rounded-2xl border border-slate-800 self-start md:self-auto">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+        <span class="text-xs font-medium text-slate-300">Live Auto-Radar</span>
+        <button onclick="window.location.reload()" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold ml-2" title="Refresh Now">
+          <i class="fa-solid fa-arrows-rotate mr-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Pills / Form -->
+    <form method="GET" action="{% url 'parking:home' %}#parking-grid" class="glass-card p-4 rounded-2xl border border-white/5 flex flex-wrap items-center gap-3">
+      
+      <!-- Filter by Floor Zone -->
+      <div class="flex items-center space-x-2">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider"><i class="fa-solid fa-layer-group text-slate-500 mr-1"></i>Zone:</label>
+        <select name="zone" onchange="this.form.submit()" class="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <option value="">All Floors & Zones</option>
+          {% for zone in all_zones %}
+            <option value="{{ zone }}" {% if selected_zone == zone %}selected{% endif %}>{{ zone }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Filter by Status -->
+      <div class="flex items-center space-x-2">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider"><i class="fa-solid fa-traffic-light text-slate-500 mr-1"></i>Status:</label>
+        <select name="status" onchange="this.form.submit()" class="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <option value="">All Statuses</option>
+          <option value="AVAILABLE" {% if selected_status == 'AVAILABLE' %}selected{% endif %}>Available Only (Green)</option>
+          <option value="OCCUPIED" {% if selected_status == 'OCCUPIED' %}selected{% endif %}>Occupied Only (Red)</option>
+          <option value="MAINTENANCE" {% if selected_status == 'MAINTENANCE' %}selected{% endif %}>Maintenance (Gray)</option>
+        </select>
+      </div>
+
+      <!-- Filter by Vehicle -->
+      <div class="flex items-center space-x-2">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider"><i class="fa-solid fa-car-side text-slate-500 mr-1"></i>Vehicle:</label>
+        <select name="vehicle" onchange="this.form.submit()" class="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <option value="">All Vehicles</option>
+          <option value="CAR" {% if selected_vehicle == 'CAR' %}selected{% endif %}>Car / Sedan</option>
+          <option value="SUV" {% if selected_vehicle == 'SUV' %}selected{% endif %}>SUV / Large</option>
+          <option value="BIKE" {% if selected_vehicle == 'BIKE' %}selected{% endif %}>Bike / 2-Wheeler</option>
+          <option value="EV" {% if selected_vehicle == 'EV' %}selected{% endif %}>Electric Vehicle (EV)</option>
+          <option value="HANDICAP" {% if selected_vehicle == 'HANDICAP' %}selected{% endif %}>Accessible Bay</option>
+        </select>
+      </div>
+
+      <!-- Reset Filter Button -->
+      {% if selected_zone or selected_status or selected_vehicle %}
+      <a href="{% url 'parking:home' %}#parking-grid" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors flex items-center space-x-1 ml-auto">
+        <i class="fa-solid fa-xmark"></i>
+        <span>Clear Filters</span>
+      </a>
+      {% endif %}
+
+    </form>
+  </div>
+
+  <!-- =========================================================================
+       VISUAL PARKING LOT BAY GRID (Realistic Bay Visualizer)
+       ========================================================================= -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+    {% for slot in slots %}
+      <!-- Individual Parking Bay Card -->
+      <div class="relative rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between overflow-hidden group
+        {% if slot.is_available %}
+          glass-card glass-card-hover border-emerald-500/30 hover:border-emerald-400 bg-gradient-to-b from-slate-900/90 to-emerald-950/20 cursor-pointer
+        {% elif slot.is_occupied %}
+          glass-card border-rose-500/30 bg-gradient-to-b from-slate-900/90 to-rose-950/20
+        {% else %}
+          glass-card border-slate-700 bg-slate-900/60 opacity-80
+        {% endif %}"
+        {% if slot.is_available %}
+          onclick="openBookingModal('{{ slot.id }}', '{{ slot.slot_number }}', '{{ slot.vehicle_type }}', '{{ slot.hourly_rate }}', '{{ slot.floor_zone }}')"
+        {% endif %}>
+        
+        <!-- Top Status Indicator & Bay ID -->
+        <div class="flex items-start justify-between">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl font-black font-mono tracking-tight text-white group-hover:text-emerald-400 transition-colors">
+                {{ slot.slot_number }}
+              </span>
+              {% if slot.vehicle_type == 'EV' %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center space-x-1">
+                  <i class="fa-solid fa-bolt text-xs"></i>
+                  <span>EV FAST</span>
+                </span>
+              {% elif slot.vehicle_type == 'HANDICAP' %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center space-x-1">
+                  <i class="fa-solid fa-wheelchair text-xs"></i>
+                  <span>PRIORITY</span>
+                </span>
+              {% endif %}
+            </div>
+            <p class="text-[11px] text-slate-400 font-medium">{{ slot.floor_zone }}</p>
+          </div>
+
+          <!-- Live Status Pill Badge -->
+          <div>
+            {% if slot.is_available %}
+              <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>AVAILABLE</span>
+              </span>
+            {% elif slot.is_occupied %}
+              <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span>OCCUPIED</span>
+              </span>
+            {% else %}
+              <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                <i class="fa-solid fa-wrench text-[10px]"></i>
+                <span>SERVICE</span>
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Center Visual Parking Bay Silhouette -->
+        <div class="my-6 py-6 border-y border-dashed border-white/10 flex flex-col items-center justify-center relative">
+          <!-- Parking Bay Lane Markings -->
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-white/10 rounded-full"></div>
+          <div class="absolute right-0 top-0 bottom-0 w-1 bg-white/10 rounded-full"></div>
+
+          {% if slot.is_available %}
+            <!-- Available Bay Animation -->
+            <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+              <i class="{{ slot.get_icon }} text-2xl"></i>
+            </div>
+            <span class="mt-2 text-xs font-semibold text-emerald-400/90 tracking-wide uppercase">Open For Parking</span>
+          
+          {% elif slot.is_occupied %}
+            <!-- Occupied Car Silhouette -->
+            <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+              <i class="{{ slot.get_icon }} text-2xl"></i>
+            </div>
+            {% if slot.active_booking %}
+              <div class="mt-2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-center">
+                <p class="text-[10px] font-mono text-slate-400 font-bold uppercase">{{ slot.active_booking.vehicle_number }}</p>
+              </div>
+            {% else %}
+              <span class="mt-2 text-xs font-semibold text-rose-400/90 tracking-wide uppercase">Parked Vehicle</span>
+            {% endif %}
+
+          {% else %}
+            <!-- Maintenance Display -->
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500">
+              <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+            </div>
+            <span class="mt-2 text-xs font-semibold text-slate-400 tracking-wide uppercase">Slot Under Service</span>
+          {% endif %}
+        </div>
+
+        <!-- Bottom Details & Action -->
+        <div class="flex items-center justify-between pt-2">
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Rate</span>
+            <span class="text-sm font-bold text-white font-mono">₹{{ slot.hourly_rate }}<span class="text-[10px] text-slate-400 font-normal">/hr</span></span>
+          </div>
+
+          <div>
+            {% if slot.is_available %}
+              <button type="button" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all flex items-center space-x-1.5">
+                <i class="fa-solid fa-bolt text-[11px]"></i>
+                <span>Reserve</span>
+              </button>
+            {% elif slot.is_occupied %}
+              <span class="text-xs font-mono text-slate-500">Locked</span>
+            {% else %}
+              <span class="text-xs text-slate-500">Offline</span>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    {% empty %}
+      <div class="col-span-full py-16 text-center glass-card rounded-3xl border border-white/5 space-y-3">
+        <i class="fa-solid fa-square-parking text-4xl text-slate-600"></i>
+        <h3 class="text-lg font-bold text-white">No Parking Slots Found</h3>
+        <p class="text-sm text-slate-400">Try adjusting your filters above or check back shortly.</p>
+        <a href="{% url 'parking:home' %}" class="inline-block mt-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-slate-950 transition-all">Reset All Filters</a>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+
+<!-- =========================================================================
+     SLICK QUICK BOOKING MODAL (Slide-in Popup)
+     Allows driver to reserve an available bay instantly without leaving the page!
+     ========================================================================= -->
+<div id="bookingModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-dark-900/80 backdrop-blur-md flex items-center justify-center p-4">
+  <div class="relative w-full max-w-lg glass-card rounded-3xl border border-white/10 p-6 sm:p-8 shadow-2xl transition-all animate-float">
+    
+    <!-- Modal Close Button -->
+    <button onclick="closeBookingModal()" class="absolute right-5 top-5 text-slate-400 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/5">
+      <i class="fa-solid fa-xmark text-lg"></i>
+    </button>
+
+    <!-- Modal Header -->
+    <div class="flex items-center space-x-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg">
+        <i class="fa-solid fa-calendar-check"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-white">Reserve Parking Bay</h3>
+        <p class="text-xs text-slate-400" id="modalSlotSubtitle">Selected Bay: <span id="modalSlotNumber" class="text-emerald-400 font-mono font-bold">--</span></p>
+      </div>
+    </div>
+
+    <!-- Live License Plate Mockup Display -->
+    <div class="mb-6 p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center space-y-2">
+      <span class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Live License Plate Preview</span>
+      <div class="px-6 py-2.5 bg-gradient-to-b from-white to-slate-200 border-2 border-slate-900 rounded-lg shadow-inner flex items-center space-x-3">
+        <span class="text-xs font-extrabold text-blue-900 uppercase">IND</span>
+        <span id="platePreviewText" class="font-mono font-black text-xl tracking-widest text-slate-950 uppercase">
+          DL-01-AB-1234
+        </span>
+      </div>
+    </div>
+
+    <!-- Booking Form Submission -->
+    <form method="POST" action="{% url 'parking:book_slot_general' %}" class="space-y-4">
+      {% csrf_token %}
+
+      <!-- Slot Selection (Hidden input + Visual Display) -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Selected Bay</label>
+        {{ booking_form.slot }}
+        {% if booking_form.slot.errors %}
+          <p class="text-xs text-rose-400 mt-1">{{ booking_form.slot.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Driver Full Name -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Driver Name</label>
+        {{ booking_form.driver_name }}
+        {% if booking_form.driver_name.errors %}
+          <p class="text-xs text-rose-400 mt-1">{{ booking_form.driver_name.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Vehicle License Registration Plate -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Vehicle Plate Number</label>
+        {{ booking_form.vehicle_number }}
+        {% if booking_form.vehicle_number.errors %}
+          <p class="text-xs text-rose-400 mt-1">{{ booking_form.vehicle_number.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Contact Phone & Vehicle Type Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Phone Number</label>
+          {{ booking_form.phone_number }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Vehicle Type</label>
+          {{ booking_form.vehicle_type }}
+        </div>
+      </div>
+
+      <!-- Duration & Live Fee Estimate -->
+      <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-semibold text-emerald-300 uppercase tracking-wider">Estimated Duration (Hours)</label>
+          <span class="text-xs text-slate-400 font-mono" id="modalHourlyRateLabel">Base: ₹50/hr</span>
+        </div>
+        {{ booking_form.duration_hours }}
+
+        <div class="flex items-center justify-between pt-2 border-t border-emerald-500/20">
+          <span class="text-xs font-medium text-slate-300">Estimated Total Cost:</span>
+          <span id="estimatedCostDisplay" class="text-xl font-black text-emerald-400 font-mono">₹100.00</span>
+        </div>
+      </div>
+
+      <!-- Submit & Reserve Button -->
+      <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-sm shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span>Confirm & Generate Digital Pass</span>
+      </button>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+  // Current active slot rate tracking for instant pricing calculations
+  let currentHourlyRate = 50.0;
+
+  function openBookingModal(slotId, slotNumber, vehicleType, rate, zone) {
+    const modal = document.getElementById('bookingModal');
+    modal.classList.remove('hidden');
+
+    document.getElementById('modalSlotNumber').innerText = slotNumber + ' (' + zone + ')';
+    currentHourlyRate = parseFloat(rate) || 50.0;
+    document.getElementById('modalHourlyRateLabel').innerText = 'Base: ₹' + currentHourlyRate.toFixed(2) + '/hr';
+
+    // Set select dropdown value
+    const slotSelect = document.getElementById('id_slot_selector');
+    if (slotSelect) {
+      slotSelect.value = slotId;
+    }
+
+    // Set vehicle type if found
+    const typeSelect = document.getElementById('id_vehicle_type');
+    if (typeSelect && vehicleType) {
+      typeSelect.value = vehicleType;
+    }
+
+    recalcCost();
+  }
+
+  function closeBookingModal() {
+    document.getElementById('bookingModal').classList.add('hidden');
+  }
+
+  // Live Plate Preview & Live Cost recalculations
+  function recalcCost() {
+    const durationInput = document.getElementById('id_duration_hours');
+    const hours = durationInput ? (parseInt(durationInput.value) || 1) : 2;
+    const total = hours * currentHourlyRate;
+    const display = document.getElementById('estimatedCostDisplay');
+    if (display) {
+      display.innerText = '₹' + total.toFixed(2);
+    }
+  }
+
+  // Hook up event listeners on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    const durationInput = document.getElementById('id_duration_hours');
+    if (durationInput) {
+      durationInput.addEventListener('input', recalcCost);
+    }
+
+    const vehiclePlateInput = document.querySelector('input[name="vehicle_number"]');
+    const platePreview = document.getElementById('platePreviewText');
+    if (vehiclePlateInput && platePreview) {
+      vehiclePlateInput.addEventListener('input', function(e) {
+        const val = e.target.value.trim().toUpperCase();
+        platePreview.innerText = val ? val : 'DL-01-AB-1234';
+      });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeBookingModal();
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}SmartPark | Booking Confirmation & Digital Pass{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+  
+  <!-- Success Alert Header -->
+  <div class="text-center space-y-3">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-3xl shadow-xl shadow-emerald-500/20 animate-bounce-short">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h1 class="text-3xl font-extrabold text-white">Booking Confirmed!</h1>
+    <p class="text-sm text-slate-300">Your parking bay has been reserved. Please show this digital pass at the entrance gate.</p>
+  </div>
+
+  <!-- =========================================================================
+       BOARDING-PASS STYLE DIGITAL PARKING TICKET
+       ========================================================================= -->
+  <div id="printablePass" class="relative rounded-3xl bg-gradient-to-b from-slate-900 via-dark-800 to-slate-900 border border-emerald-500/30 shadow-2xl overflow-hidden">
+    
+    <!-- Top Glowing Accent Bar -->
+    <div class="h-2.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 w-full"></div>
+
+    <!-- Ticket Top Section -->
+    <div class="p-6 sm:p-8 space-y-6">
+      
+      <!-- Facility & Reference Number -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-xs uppercase font-extrabold tracking-widest text-emerald-400">SMARTPARK DIGITAL PASS</span>
+          <h2 class="text-lg font-bold text-white">Central Automated Facility</h2>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Reference Token</span>
+          <div class="flex items-center space-x-1.5">
+            <span class="font-mono font-black text-xl text-emerald-400 tracking-wider">{{ booking.booking_reference }}</span>
+            <button onclick="navigator.clipboard.writeText('{{ booking.booking_reference }}'); alert('Reference ID Copied!');" class="text-xs text-slate-400 hover:text-white p-1" title="Copy Reference">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Allocated Bay Spotlight -->
+      <div class="p-6 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold text-emerald-300 uppercase tracking-widest">Designated Parking Bay</span>
+          <div class="text-5xl font-black font-mono text-white tracking-tight mt-1">
+            {{ booking.slot.slot_number }}
+          </div>
+          <p class="text-xs text-slate-300 mt-1">
+            <i class="fa-solid fa-location-dot text-emerald-400 mr-1"></i>{{ booking.slot.floor_zone }}
+          </p>
+        </div>
+
+        <div class="sm:text-right flex sm:flex-col items-center sm:items-end justify-between">
+          <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-slate-950 uppercase tracking-wide">
+            {{ booking.get_status_display }}
+          </span>
+          <span class="text-xs text-slate-400 font-mono mt-2">Tariff: ₹{{ booking.slot.hourly_rate }}/hr</span>
+        </div>
+      </div>
+
+      <!-- Driver & Vehicle Details Grid -->
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Driver Name</span>
+          <span class="text-white font-bold">{{ booking.driver_name }}</span>
+        </div>
+
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Contact Number</span>
+          <span class="text-white font-mono font-medium">{{ booking.phone_number }}</span>
+        </div>
+
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Vehicle Plate</span>
+          <span class="text-emerald-300 font-mono font-bold tracking-wider uppercase">{{ booking.vehicle_number }}</span>
+        </div>
+
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Vehicle Category</span>
+          <span class="text-white font-medium">{{ booking.get_vehicle_type_display }}</span>
+        </div>
+
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Booking Time (In)</span>
+          <span class="text-white font-mono text-xs">{{ booking.booking_time|date:"d M Y, h:i A" }}</span>
+        </div>
+
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Duration & Est. Fee</span>
+          <span class="text-emerald-400 font-mono font-bold">{{ booking.duration_hours }} hrs (₹{{ booking.estimated_cost }})</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Perforated Cutout Line (Ticket Effect) -->
+    <div class="relative flex items-center justify-between">
+      <div class="w-6 h-12 bg-dark-900 rounded-r-full -ml-3 border-r border-y border-white/10"></div>
+      <div class="w-full border-b-2 border-dashed border-white/10 mx-2"></div>
+      <div class="w-6 h-12 bg-dark-900 rounded-l-full -mr-3 border-l border-y border-white/10"></div>
+    </div>
+
+    <!-- Ticket Bottom Barcode / QR Section -->
+    <div class="p-6 bg-slate-950/90 flex flex-col sm:flex-row items-center justify-between gap-6">
+      
+      <!-- Simulated High-Tech SVG Barcode / QR -->
+      <div class="flex items-center space-x-4">
+        <!-- SVG QR Matrix Illustration -->
+        <div class="w-20 h-20 p-2 bg-white rounded-xl flex items-center justify-center shrink-0">
+          <svg class="w-full h-full text-slate-900" viewBox="0 0 100 100" fill="currentColor">
+            <!-- Corner Finder 1 -->
+            <rect x="5" y="5" width="30" height="30" rx="3" fill="#000"/>
+            <rect x="10" y="10" width="20" height="20" fill="#fff"/>
+            <rect x="15" y="15" width="10" height="10" fill="#000"/>
+            <!-- Corner Finder 2 -->
+            <rect x="65" y="5" width="30" height="30" rx="3" fill="#000"/>
+            <rect x="70" y="10" width="20" height="20" fill="#fff"/>
+            <rect x="75" y="15" width="10" height="10" fill="#000"/>
+            <!-- Corner Finder 3 -->
+            <rect x="5" y="65" width="30" height="30" rx="3" fill="#000"/>
+            <rect x="10" y="70" width="20" height="20" fill="#fff"/>
+            <rect x="15" y="75" width="10" height="10" fill="#000"/>
+            <!-- Data pattern blocks -->
+            <rect x="45" y="10" width="10" height="10" fill="#000"/>
+            <rect x="45" y="30" width="10" height="10" fill="#000"/>
+            <rect x="45" y="50" width="10" height="10" fill="#000"/>
+            <rect x="65" y="45" width="10" height="10" fill="#000"/>
+            <rect x="80" y="65" width="15" height="10" fill="#000"/>
+            <rect x="45" y="75" width="15" height="15" fill="#000"/>
+          </svg>
+        </div>
+
+        <div>
+          <span class="text-xs font-mono font-bold text-white block">SCAN AT ENTRY GATE BOOM BARRIER</span>
+          <p class="text-[11px] text-slate-400">Automated ANPR camera will match vehicle plate {{ booking.vehicle_number }}</p>
+          <span class="text-[10px] text-slate-500 font-mono">HASH: {{ booking.booking_reference }}#{{ booking.id }}</span>
+        </div>
+      </div>
+
+      <!-- Ticket Actions -->
+      <div class="flex items-center space-x-3 w-full sm:w-auto">
+        <button onclick="window.print()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-print"></i>
+          <span>Print / PDF</span>
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Action Row: Back to grid or Cancel option -->
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+    <a href="{% url 'parking:home' %}" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center space-x-2">
+      <i class="fa-solid fa-house"></i>
+      <span>Return to Facility Overview</span>
+    </a>
+
+    <!-- Need to cancel this booking? -->
+    <a href="{% url 'parking:cancel_booking' %}?ref={{ booking.booking_reference }}" class="text-xs text-rose-400 hover:text-rose-300 font-semibold transition-colors flex items-center space-x-1">
+      <i class="fa-solid fa-ban"></i>
+      <span>Cancel this reservation</span>
+    </a>
+  </div>
+
+</div>
+{% endblock %}

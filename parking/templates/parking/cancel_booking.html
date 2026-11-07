@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}SmartPark | Cancel Existing Booking{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+  
+  <!-- Back Link -->
+  <a href="{% url 'parking:home' %}" class="inline-flex items-center space-x-2 text-sm text-slate-400 hover:text-white transition-colors">
+    <i class="fa-solid fa-arrow-left"></i>
+    <span>Back to Live Parking Grid</span>
+  </a>
+
+  <!-- Header -->
+  <div class="text-center space-y-3">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-2xl">
+      <i class="fa-solid fa-ticket-simple"></i>
+    </div>
+    <h1 class="text-3xl font-extrabold text-white">Find & Cancel Reservation</h1>
+    <p class="text-sm text-slate-300">Enter your Booking Reference token or Vehicle Registration Number to look up your active parking reservation.</p>
+  </div>
+
+  <!-- Search Card -->
+  <div class="glass-card rounded-3xl border border-white/10 p-6 sm:p-8 shadow-2xl space-y-6">
+    <form method="POST" action="{% url 'parking:cancel_booking' %}" class="space-y-4">
+      {% csrf_token %}
+      
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Booking Reference or Vehicle Plate</label>
+        {{ form.booking_reference }}
+        <p class="text-xs text-slate-400 mt-2">Example: <span class="text-rose-400 font-mono font-bold">PRK-7F2A9C</span> or <span class="text-slate-200 font-mono font-bold">MH-12-PQ-9009</span></p>
+      </div>
+
+      <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white font-bold text-sm border border-slate-600 shadow-lg transition-all flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <span>Search Active Reservation</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- Found Booking Preview & Confirmation -->
+  {% if booking %}
+  <div class="glass-card rounded-3xl border border-rose-500/30 bg-gradient-to-b from-slate-900 to-rose-950/20 p-6 sm:p-8 shadow-2xl space-y-6 animate-pulse-short">
+    <div class="flex items-center justify-between border-b border-rose-500/20 pb-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+          <i class="fa-solid fa-circle-exclamation text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white">Active Reservation Found</h3>
+          <span class="text-xs font-mono text-rose-400 font-bold">TOKEN: {{ booking.booking_reference }}</span>
+        </div>
+      </div>
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+        ACTIVE
+      </span>
+    </div>
+
+    <!-- Booking Summary Grid -->
+    <div class="grid grid-cols-2 gap-4 text-sm bg-slate-950/60 p-5 rounded-2xl border border-white/5">
+      <div>
+        <span class="text-[10px] text-slate-400 uppercase font-semibold block">Designated Bay</span>
+        <span class="text-xl font-black font-mono text-emerald-400">{{ booking.slot.slot_number }}</span>
+        <span class="text-xs text-slate-400 block">{{ booking.slot.floor_zone }}</span>
+      </div>
+
+      <div>
+        <span class="text-[10px] text-slate-400 uppercase font-semibold block">Vehicle Number</span>
+        <span class="text-lg font-mono font-bold text-white uppercase">{{ booking.vehicle_number }}</span>
+        <span class="text-xs text-slate-400 block">{{ booking.get_vehicle_type_display }}</span>
+      </div>
+
+      <div>
+        <span class="text-[10px] text-slate-400 uppercase font-semibold block">Driver Name</span>
+        <span class="text-white font-medium">{{ booking.driver_name }}</span>
+      </div>
+
+      <div>
+        <span class="text-[10px] text-slate-400 uppercase font-semibold block">Reserved At</span>
+        <span class="text-xs text-slate-300 font-mono">{{ booking.booking_time|date:"d M Y, h:i A" }}</span>
+      </div>
+    </div>
+
+    <!-- Cancellation Confirmation Form -->
+    <form method="POST" action="{% url 'parking:cancel_booking' %}" class="space-y-4 pt-2">
+      {% csrf_token %}
+      <input type="hidden" name="confirm_cancel_ref" value="{{ booking.booking_reference }}">
+
+      <div class="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs flex items-start space-x-3">
+        <i class="fa-solid fa-triangle-exclamation text-base text-rose-400 mt-0.5"></i>
+        <span>Cancelling this reservation will immediately release Bay <strong>{{ booking.slot.slot_number }}</strong> back to AVAILABLE status for other waiting drivers. This action cannot be undone.</span>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <button type="submit" class="flex-1 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Yes, Cancel This Booking</span>
+        </button>
+        <a href="{% url 'parking:home' %}" class="px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors">
+          Keep It
+        </a>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SmartPark | Next-Gen Intelligent Parking Management{% endblock %}</title>
+
+  {% comment %}
+  =========================================================================
+  BEGINNER TEMPLATE EXPLANATION:
+  This is the 'Master Base Template'. All other HTML pages inherit from this.
+  Child templates simply fill in the block content placeholder!
+  =========================================================================
+  {% endcomment %}
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via Official Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            },
+            dark: {
+              900: '#070b14',
+              800: '#0d1527',
+              700: '#15203b',
+              600: '#1e2d52',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 6s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-8px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    /* Custom Glassmorphism & High-End Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #070b14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-hover:hover {
+      border-color: rgba(16, 185, 129, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px -10px rgba(16, 185, 129, 0.15);
+    }
+    .glow-available {
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+    }
+    .glow-occupied {
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-dark-900 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white antialiased">
+
+  <!-- =========================================================================
+       TOP GLOBAL NAVIGATION BAR
+       ========================================================================= -->
+  <header class="sticky top-0 z-50 glass-card border-b border-white/10 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Brand Logo -->
+        <a href="{% url 'parking:home' %}" class="flex items-center space-x-3 group">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 via-emerald-500 to-teal-400 p-[2px] shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-all">
+            <div class="w-full h-full bg-dark-900 rounded-[14px] flex items-center justify-center">
+              <i class="fa-solid fa-square-parking text-2xl text-emerald-400 group-hover:rotate-12 transition-transform"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-extrabold tracking-tight text-white">Smart<span class="text-emerald-400">Park</span></span>
+              <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Live v2.0</span>
+            </div>
+            <p class="text-xs text-slate-400 hidden sm:block">Intelligent Slot Tracking & Allocation</p>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+          <a href="{% url 'parking:home' %}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all {% if request.resolver_match.url_name == 'home' %}text-emerald-400 bg-emerald-500/10 border border-emerald-500/20{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+            <i class="fa-solid fa-grid-2 mr-2"></i>Parking Grid
+          </a>
+          <a href="{% url 'parking:book_slot_general' %}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all {% if 'book' in request.resolver_match.url_name %}text-emerald-400 bg-emerald-500/10 border border-emerald-500/20{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+            <i class="fa-solid fa-calendar-check mr-2"></i>Book a Slot
+          </a>
+          <a href="{% url 'parking:cancel_booking' %}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all {% if request.resolver_match.url_name == 'cancel_booking' %}text-rose-400 bg-rose-500/10 border border-rose-500/20{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+            <i class="fa-solid fa-ticket-simple mr-2"></i>Cancel / Find Pass
+          </a>
+          <a href="{% url 'parking:admin_dashboard' %}" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all text-amber-300 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20">
+            <i class="fa-solid fa-shield-halved mr-2"></i>Admin Portal
+          </a>
+          <a href="/admin/" target="_blank" class="px-3 py-2 rounded-xl text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors" title="Django Core Superuser Admin">
+            <i class="fa-solid fa-screwdriver-wrench mr-1"></i>/admin
+          </a>
+        </nav>
+
+        <!-- Right Action Button -->
+        <div class="flex items-center space-x-3">
+          <a href="{% url 'parking:book_slot_general' %}" class="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-sm font-semibold rounded-xl group bg-gradient-to-br from-emerald-500 to-teal-600 group-hover:from-emerald-500 group-hover:to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all">
+            <span class="relative px-4 py-2 transition-all ease-in duration-75 bg-dark-900 rounded-[10px] group-hover:bg-opacity-0 flex items-center space-x-2">
+              <i class="fa-solid fa-bolt text-emerald-400 group-hover:text-white transition-colors"></i>
+              <span>Park Vehicle Now</span>
+            </span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       DJANGO FLASH MESSAGES (Toast Alerts)
+       Beginner explanation:
+       When views call `messages.success(request, '...')` or `messages.error(...)`,
+       Django stores them in the session and renders them on the next page view!
+       ========================================================================= -->
+  {% if messages %}
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full space-y-3 z-40">
+    {% for message in messages %}
+    <div class="flex items-center justify-between p-4 rounded-2xl border backdrop-blur-xl shadow-xl transition-all animate-bounce-short
+      {% if message.tags == 'success' %}bg-emerald-950/80 border-emerald-500/40 text-emerald-200
+      {% elif message.tags == 'error' %}bg-rose-950/80 border-rose-500/40 text-rose-200
+      {% elif message.tags == 'warning' %}bg-amber-950/80 border-amber-500/40 text-amber-200
+      {% else %}bg-cyan-950/80 border-cyan-500/40 text-cyan-200{% endif %}">
+      
+      <div class="flex items-center space-x-3">
+        {% if message.tags == 'success' %}
+          <i class="fa-solid fa-circle-check text-xl text-emerald-400"></i>
+        {% elif message.tags == 'error' %}
+          <i class="fa-solid fa-triangle-exclamation text-xl text-rose-400"></i>
+        {% elif message.tags == 'warning' %}
+          <i class="fa-solid fa-circle-exclamation text-xl text-amber-400"></i>
+        {% else %}
+          <i class="fa-solid fa-circle-info text-xl text-cyan-400"></i>
+        {% endif %}
+        <span class="text-sm font-medium">{{ message }}</span>
+      </div>
+
+      <button onclick="this.parentElement.remove()" class="text-white/60 hover:text-white transition-colors p-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- =========================================================================
+       MAIN CONTENT BLOCK: Injected by Child Templates
+       ========================================================================= -->
+  <main class="flex-grow">
+    {% block content %}
+    <!-- Child templates overwrite this content -->
+    {% endblock %}
+  </main>
+
+  <!-- =========================================================================
+       FOOTER
+       ========================================================================= -->
+  <footer class="glass-card border-t border-white/5 mt-20 py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+          P
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-white">SmartPark Facility Automation</p>
+          <p class="text-xs text-slate-400">Built with Python 3.14 & Django 6.1 (MVT Architecture)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-6 text-sm text-slate-400">
+        <span class="flex items-center space-x-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>System Operational</span>
+        </span>
+        <a href="{% url 'parking:home' %}" class="hover:text-emerald-400 transition-colors">Driver View</a>
+        <a href="{% url 'parking:cancel_booking' %}" class="hover:text-emerald-400 transition-colors">Cancel Pass</a>
+        <a href="{% url 'parking:admin_dashboard' %}" class="hover:text-amber-400 transition-colors">Admin Room</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script block for page-specific JavaScript -->
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

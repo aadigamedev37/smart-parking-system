@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+
+{% block title %}SmartPark | Administrator Command Center{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+  <!-- =========================================================================
+       ADMIN HEADER & TOP CONTROLS
+       ========================================================================= -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/10 pb-6">
+    <div class="space-y-1">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold tracking-wide uppercase">
+        <i class="fa-solid fa-shield-halved text-xs"></i>
+        <span>Facility Administrator Portal</span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-white tracking-tight">Facility Control Room</h1>
+      <p class="text-sm text-slate-400">Real-time telemetry, bay availability management, and comprehensive reservation tracking.</p>
+    </div>
+
+    <!-- Quick Action: Add Slot Modal Trigger -->
+    <div class="flex items-center space-x-3">
+      <button onclick="openAddSlotModal()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-cyan-500/20 transition-all flex items-center space-x-2">
+        <i class="fa-solid fa-plus-circle text-base"></i>
+        <span>Add New Parking Bay</span>
+      </button>
+
+      <a href="/admin/" target="_blank" class="px-4 py-2.5 rounded-xl glass-card hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all flex items-center space-x-2" title="Open Django Core Superuser Admin">
+        <i class="fa-solid fa-database text-amber-400"></i>
+        <span>Django Admin</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       EXECUTIVE KPI METRICS GRID
+       ========================================================================= -->
+  <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
+    
+    <!-- Total Bays -->
+    <div class="glass-card p-4 rounded-2xl border border-white/10 flex flex-col justify-between">
+      <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Bays</span>
+      <div class="mt-2 text-3xl font-black font-mono text-white">{{ total_slots }}</div>
+      <span class="text-[11px] text-slate-500 mt-1">Configured capacity</span>
+    </div>
+
+    <!-- Vacant Bays -->
+    <div class="glass-card p-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 flex flex-col justify-between">
+      <div class="flex items-center justify-between text-xs font-semibold text-emerald-300 uppercase tracking-wider">
+        <span>Available</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </div>
+      <div class="mt-2 text-3xl font-black font-mono text-emerald-400">{{ available_slots }}</div>
+      <span class="text-[11px] text-emerald-400/70 mt-1">Ready for arrival</span>
+    </div>
+
+    <!-- Occupied Bays -->
+    <div class="glass-card p-4 rounded-2xl border border-rose-500/20 bg-rose-950/20 flex flex-col justify-between">
+      <div class="flex items-center justify-between text-xs font-semibold text-rose-300 uppercase tracking-wider">
+        <span>Occupied</span>
+        <i class="fa-solid fa-car text-rose-400 text-xs"></i>
+      </div>
+      <div class="mt-2 text-3xl font-black font-mono text-rose-400">{{ occupied_slots }}</div>
+      <span class="text-[11px] text-rose-400/70 mt-1">Vehicles parked</span>
+    </div>
+
+    <!-- Under Maintenance -->
+    <div class="glass-card p-4 rounded-2xl border border-slate-700 bg-slate-900/60 flex flex-col justify-between">
+      <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Maintenance</span>
+      <div class="mt-2 text-3xl font-black font-mono text-slate-300">{{ maintenance_slots }}</div>
+      <span class="text-[11px] text-slate-500 mt-1">Offline bays</span>
+    </div>
+
+    <!-- Occupancy Rate -->
+    <div class="glass-card p-4 rounded-2xl border border-cyan-500/20 bg-cyan-950/20 flex flex-col justify-between">
+      <span class="text-xs font-semibold text-cyan-300 uppercase tracking-wider">Occupancy</span>
+      <div class="mt-2 text-3xl font-black font-mono text-cyan-300">{{ occupancy_rate }}%</div>
+      <span class="text-[11px] text-cyan-400/70 mt-1">Facility load</span>
+    </div>
+
+    <!-- Cumulative Revenue -->
+    <div class="glass-card p-4 rounded-2xl border border-amber-500/20 bg-amber-950/20 flex flex-col justify-between">
+      <span class="text-xs font-semibold text-amber-300 uppercase tracking-wider">Total Revenue</span>
+      <div class="mt-2 text-2xl font-black font-mono text-amber-300">₹{{ total_revenue }}</div>
+      <span class="text-[11px] text-amber-400/70 mt-1">{{ total_bookings_count }} reservations</span>
+    </div>
+
+  </div>
+
+  <!-- =========================================================================
+       SECTION 1: PARKING SLOTS MANAGEMENT & AVAILABILITY CONTROL
+       "Add, view and update parking slots. Manage parking-slot availability."
+       ========================================================================= -->
+  <div class="glass-card rounded-3xl border border-white/10 p-6 sm:p-8 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div>
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>Manage Parking Slots & Availability</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">{{ slots|length }} total</span>
+        </h2>
+        <p class="text-xs text-slate-400">Toggle slot availability instantly or edit physical slot specifications.</p>
+      </div>
+
+      <div class="flex items-center space-x-2 text-xs">
+        <span class="text-slate-400">Status Quick-Legend:</span>
+        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">Available</span>
+        <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold">Occupied</span>
+        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">Maintenance</span>
+      </div>
+    </div>
+
+    <!-- Responsive Table of Slots -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="text-xs uppercase tracking-wider text-slate-400 bg-slate-900/80 border-b border-white/10">
+          <tr>
+            <th class="py-3 px-4 font-semibold">Slot Bay</th>
+            <th class="py-3 px-4 font-semibold">Floor / Zone</th>
+            <th class="py-3 px-4 font-semibold">Vehicle Allowed</th>
+            <th class="py-3 px-4 font-semibold">Hourly Rate</th>
+            <th class="py-3 px-4 font-semibold">Live State</th>
+            <th class="py-3 px-4 font-semibold text-right">Quick Management</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5 font-medium">
+          {% for slot in slots %}
+          <tr class="hover:bg-white/5 transition-colors">
+            
+            <!-- Slot Bay Number -->
+            <td class="py-3 px-4">
+              <span class="font-mono font-black text-base text-white">{{ slot.slot_number }}</span>
+            </td>
+
+            <!-- Floor Zone -->
+            <td class="py-3 px-4 text-xs text-slate-300">
+              {{ slot.floor_zone }}
+            </td>
+
+            <!-- Vehicle Allowed -->
+            <td class="py-3 px-4">
+              <span class="inline-flex items-center space-x-1.5 text-xs text-slate-300">
+                <i class="{{ slot.get_icon }} text-slate-400"></i>
+                <span>{{ slot.get_vehicle_type_display }}</span>
+              </span>
+            </td>
+
+            <!-- Tariff -->
+            <td class="py-3 px-4 font-mono text-white text-xs">
+              ₹{{ slot.hourly_rate }}/hr
+            </td>
+
+            <!-- Live State Badge -->
+            <td class="py-3 px-4">
+              {% if slot.is_available %}
+                <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>AVAILABLE</span>
+                </span>
+              {% elif slot.is_occupied %}
+                <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  <span>OCCUPIED</span>
+                </span>
+              {% else %}
+                <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                  <i class="fa-solid fa-wrench text-[10px]"></i>
+                  <span>MAINTENANCE</span>
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Action Buttons -->
+            <td class="py-3 px-4 text-right space-x-2">
+              
+              <!-- Quick 1-Click Status Toggle -->
+              <a href="{% url 'parking:admin_toggle_slot' slot.id %}" class="inline-flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-semibold transition-all
+                {% if slot.is_available %}
+                  bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700
+                {% elif slot.is_occupied %}
+                  bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30
+                {% else %}
+                  bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30
+                {% endif %}"
+                title="Toggle slot state">
+                {% if slot.is_available %}
+                  <i class="fa-solid fa-wrench"></i>
+                  <span>Set Service</span>
+                {% elif slot.is_occupied %}
+                  <i class="fa-solid fa-right-from-bracket"></i>
+                  <span>Free Bay</span>
+                {% else %}
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span>Make Free</span>
+                {% endif %}
+              </a>
+
+              <!-- Edit Slot Link -->
+              <a href="{% url 'parking:admin_edit_slot' slot.id %}" class="inline-flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/20 transition-all">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit</span>
+              </a>
+
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SECTION 2: LIVE BOOKINGS MONITORING LEDGER
+       "View all parking bookings and their details."
+       ========================================================================= -->
+  <div class="glass-card rounded-3xl border border-white/10 p-6 sm:p-8 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div>
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>Active & Historical Reservations Ledger</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">{{ bookings|length }} shown</span>
+        </h2>
+        <p class="text-xs text-slate-400">Search reservations by plate, driver name, reference code, or slot.</p>
+      </div>
+
+      <!-- Search Bar -->
+      <form method="GET" action="{% url 'parking:admin_dashboard' %}" class="flex items-center space-x-2">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search plate, name, ref..." class="px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:outline-none font-mono">
+        <button type="submit" class="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl transition-colors">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+        {% if search_query or status_filter %}
+        <a href="{% url 'parking:admin_dashboard' %}" class="px-2.5 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-xl text-xs transition-colors" title="Clear Search">
+          <i class="fa-solid fa-xmark"></i>
+        </a>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="text-xs uppercase tracking-wider text-slate-400 bg-slate-900/80 border-b border-white/10">
+          <tr>
+            <th class="py-3 px-4 font-semibold">Ref Token</th>
+            <th class="py-3 px-4 font-semibold">Bay</th>
+            <th class="py-3 px-4 font-semibold">Driver & Contact</th>
+            <th class="py-3 px-4 font-semibold">Vehicle Plate</th>
+            <th class="py-3 px-4 font-semibold">Time Booked</th>
+            <th class="py-3 px-4 font-semibold">Fee</th>
+            <th class="py-3 px-4 font-semibold">Status</th>
+            <th class="py-3 px-4 font-semibold text-right">Gate Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5 font-medium">
+          {% for b in bookings %}
+          <tr class="hover:bg-white/5 transition-colors">
+            
+            <!-- Reference -->
+            <td class="py-3 px-4">
+              <a href="{% url 'parking:booking_confirmation' b.booking_reference %}" class="font-mono font-bold text-xs text-cyan-400 hover:underline">
+                {{ b.booking_reference }}
+              </a>
+            </td>
+
+            <!-- Bay -->
+            <td class="py-3 px-4">
+              <span class="font-mono font-bold text-white">{{ b.slot.slot_number }}</span>
+              <span class="text-[10px] text-slate-400 block">{{ b.slot.floor_zone }}</span>
+            </td>
+
+            <!-- Driver & Contact -->
+            <td class="py-3 px-4">
+              <span class="text-white font-semibold block">{{ b.driver_name }}</span>
+              <span class="text-[11px] text-slate-400 font-mono">{{ b.phone_number }}</span>
+            </td>
+
+            <!-- Vehicle Plate -->
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 font-mono font-bold text-xs text-emerald-300 uppercase tracking-wider">
+                {{ b.vehicle_number }}
+              </span>
+            </td>
+
+            <!-- In-Time -->
+            <td class="py-3 px-4 text-xs text-slate-300 font-mono">
+              {{ b.booking_time|date:"d M, h:i A" }}
+            </td>
+
+            <!-- Fee -->
+            <td class="py-3 px-4 font-mono text-xs text-white">
+              ₹{{ b.estimated_cost }}
+            </td>
+
+            <!-- Status -->
+            <td class="py-3 px-4">
+              {% if b.status == 'ACTIVE' %}
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  ACTIVE
+                </span>
+              {% elif b.status == 'CANCELLED' %}
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  CANCELLED
+                </span>
+              {% else %}
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  COMPLETED
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Gate Action (Checkout) -->
+            <td class="py-3 px-4 text-right">
+              {% if b.status == 'ACTIVE' %}
+                <a href="{% url 'parking:admin_complete_booking' b.id %}" class="inline-flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all">
+                  <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                  <span>Exit Vehicle</span>
+                </a>
+              {% else %}
+                <span class="text-xs text-slate-500 font-mono">Closed</span>
+              {% endif %}
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="py-8 text-center text-slate-500 text-xs">
+              No reservation records matching the query.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- =========================================================================
+     MODAL: ADD NEW PARKING SLOT
+     ========================================================================= -->
+<div id="addSlotModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-dark-900/80 backdrop-blur-md flex items-center justify-center p-4">
+  <div class="relative w-full max-w-md glass-card rounded-3xl border border-white/10 p-6 sm:p-8 shadow-2xl">
+    
+    <button onclick="closeAddSlotModal()" class="absolute right-5 top-5 text-slate-400 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/5">
+      <i class="fa-solid fa-xmark text-lg"></i>
+    </button>
+
+    <div class="flex items-center space-x-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-lg">
+        <i class="fa-solid fa-square-parking"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-white">Add New Parking Bay</h3>
+        <p class="text-xs text-slate-400">Configure floor zone, vehicle suitability & tariff.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'parking:admin_add_slot' %}" class="space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Slot Number</label>
+        {{ slot_form.slot_number }}
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Floor & Zone</label>
+        {{ slot_form.floor_zone }}
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Vehicle Type</label>
+        {{ slot_form.vehicle_type }}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Initial Status</label>
+          {{ slot_form.status }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Hourly Rate (₹)</label>
+          {{ slot_form.hourly_rate }}
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center space-x-2 mt-4">
+        <i class="fa-solid fa-plus-circle"></i>
+        <span>Create Bay in Facility</span>
+      </button>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openAddSlotModal() {
+    document.getElementById('addSlotModal').classList.remove('hidden');
+  }
+  function closeAddSlotModal() {
+    document.getElementById('addSlotModal').classList.add('hidden');
+  }
+</script>
+{% endblock %}
